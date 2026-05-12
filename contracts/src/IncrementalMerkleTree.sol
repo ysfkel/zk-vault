@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Poseidon2} from "@poseidon2/Poseidon2.sol";
 import {Field} from "@poseidon2/Field.sol";
 
+/// @title Incremental Merkle Tree
+/// @notice For educational purposes only. Simple incremental Merkle tree using Poseidon hashing and a fixed depth.
+/// @dev Stores recent roots in a ring buffer (`roots`) and supports incremental leaf insertion via `_insert`.
 contract IncrementalMerkleTree {
     // BN256 scalar field
 
@@ -30,6 +33,9 @@ contract IncrementalMerkleTree {
     error IncrementalMerkleTree__TreeDepthLessThan32Expected(uint256 depth);
     error IncrementalMerkleTree__MerkleTreeIsFull(uint256 nextLeafIndex);
 
+    /// @dev Initialize tree parameters and set the empty root.
+    /// @param _depth Number of levels in the tree (depth > 0 and < 32).
+    /// @param _hasher Poseidon2 hasher contract used for internal node hashing.
     constructor(uint32 _depth, Poseidon2 _hasher) {
         require(_depth > 0, IncrementalMerkleTree__TreeDepthCannotBeZero(_depth));
         require(_depth < 32, IncrementalMerkleTree__TreeDepthLessThan32Expected(_depth));
@@ -38,8 +44,10 @@ contract IncrementalMerkleTree {
         roots[0] = zeros(_depth); // set thse root of the empty tree to be the hash of the default node at the maximum depth - this is because when the tree is empty, all the nodes are default nodes, so the root is the hash of the default node at the maximum depth
     }
 
-    ///@dev It iterates depth times — climbing from the leaf all the way to the apex. After the loop, currentHash is
-    ///     the root of the whole tree, and that's what gets stored in roots[newRootIndex].
+    /// @dev Insert a new leaf into the incremental Merkle tree.
+    /// @param leaf The leaf value (bytes32) to insert (typically a commitment).
+    /// @return _nextLeafIndex The index where the leaf was inserted.
+    /// @dev Updates cached subtrees and stores the new root into the `roots` ring buffer. Reverts if the tree is full.
     function _insert(bytes32 leaf) internal virtual returns (uint32 _nextLeafIndex) {
         // check if the tree is full by checking if the next leaf index is less
         //  than the maximum number of leaves in the tree which is 2^depth
@@ -85,6 +93,9 @@ contract IncrementalMerkleTree {
         return _nextLeafIndex;
     }
 
+    /// @dev Check whether a root is present in recent root history.
+    /// @param _root The Merkle root to check for membership in the root history.
+    /// @return bool True if the root exists in the ring buffer, false otherwise.
     function isKnownRoot(bytes32 _root) public view returns(bool) {
         if (_root == bytes32(0)) {
             return false;
@@ -111,8 +122,10 @@ contract IncrementalMerkleTree {
     }
 
 
-    // @dev this function is used to initialize the tree with default values. it returns the hash of the default node at a given depth. this is used to avoid recomputing the hash of the default node multiple times when inserting new leaves into the tree. the hash of the default node at depth 0 is the hash of 0, at depth 1 is the hash of the hash of 0, at depth 2 is the hash of the hash of the hash of 0, and so on. you can compute these hashes offchain and then hardcode them in this function.
-    // @param i the index of the leaf for which to return the hash of the default node
+    /// @dev Return the default (zero) node hash for a given level `i`.
+    /// @param i The tree level (0 = leaf level) for which to return the precomputed zero hash.
+    /// @return bytes32 The precomputed zero/default node hash used for empty branches.
+    /// @dev These values can be computed off-chain and hardcoded to avoid repeated recomputation.
     function zeros(uint256 i) public pure returns (bytes32) {
         // in poseidon , Field.Type is a byte type whose value is smaller than uint245
         //
