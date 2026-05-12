@@ -10,7 +10,7 @@ contract ZKVaultTest is Test {
     Poseidon2 public poseidon;
     IVerifier public verifier;
     IncrementalMerkleTree public tree;
-    address public alice = address(0x1);
+    address public recipient = address(0x1);
 
     function setUp() public {
         poseidon = new Poseidon2();
@@ -36,18 +36,40 @@ contract ZKVaultTest is Test {
         bytes32[] memory leaves = new bytes32[](1);
         leaves[0] = commitment;
 
-        (bytes memory proof, bytes32[] memory publicInputs) = _getProof(nullifier, secret, alice, leaves);
+        (bytes memory proof, bytes32[] memory publicInputs) = _getProof(nullifier, secret, recipient, leaves);
        
         assertTrue(verifier.verify(proof, publicInputs));
         bytes32 root = publicInputs[0];
         bytes32 _nullifierHash = publicInputs[1];
         address receiver = address(uint160(uint256(publicInputs[2])));
 
-        vm.assertEq(alice.balance, 0); 
+        vm.assertEq(recipient.balance, 0); 
         vm.assertEq(address(zkVault).balance, zkVault.DENOMINATION());
         zkVault.withdraw(proof, root, _nullifierHash, receiver);
-        vm.assertEq(alice.balance, zkVault.DENOMINATION());
+        vm.assertEq(recipient.balance, zkVault.DENOMINATION());
         vm.assertEq(address(zkVault).balance, 0);
+    }
+
+
+    function testAnotherAddressSendProof() public {
+        // make a deposit
+        (bytes32 _commitment, bytes32 _nullifier, bytes32 _secret) = _getCommitment();
+        console.log("Commitment: ");
+        console.logBytes32(_commitment);
+        vm.expectEmit(true, false, false, true);
+        emit ZKVault.Deposit(_commitment, 0, block.timestamp);
+        zkVault.deposit{value: zkVault.DENOMINATION()}(_commitment);
+
+        // create a proof
+        bytes32[] memory leaves = new bytes32[](1);
+        leaves[0] = _commitment;
+        (bytes memory _proof, bytes32[] memory _publicInputs) = _getProof(_nullifier, _secret, recipient, leaves);
+
+        // make a withdrawal
+        address attacker = makeAddr("attacker");
+        vm.prank(attacker);
+        vm.expectRevert();
+        zkVault.withdraw(_proof, _publicInputs[0], _publicInputs[1], payable(attacker));
     }
 
     function _getProof(bytes32 nullifier, bytes32 secret, address recipient, bytes32[] memory leaves) internal returns(bytes memory proof, bytes32[] memory publicInputs) {
