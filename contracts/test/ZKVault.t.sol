@@ -10,6 +10,7 @@ contract ZKVaultTest is Test {
     Poseidon2 public poseidon;
     IVerifier public verifier;
     IncrementalMerkleTree public tree;
+    address public alice = address(0x1);
 
     function setUp() public {
         poseidon = new Poseidon2();
@@ -35,9 +36,18 @@ contract ZKVaultTest is Test {
         bytes32[] memory leaves = new bytes32[](1);
         leaves[0] = commitment;
 
-        (bytes memory proof, bytes32[] memory publicInputs) = _getProof(nullifier, secret, address(this), leaves);
+        (bytes memory proof, bytes32[] memory publicInputs) = _getProof(nullifier, secret, alice, leaves);
        
         assertTrue(verifier.verify(proof, publicInputs));
+        bytes32 root = publicInputs[0];
+        bytes32 _nullifierHash = publicInputs[1];
+        address receiver = address(uint160(uint256(publicInputs[2])));
+
+        vm.assertEq(alice.balance, 0); 
+        vm.assertEq(address(zkVault).balance, zkVault.DENOMINATION());
+        zkVault.withdraw(proof, root, _nullifierHash, receiver);
+        vm.assertEq(alice.balance, zkVault.DENOMINATION());
+        vm.assertEq(address(zkVault).balance, 0);
     }
 
     function _getProof(bytes32 nullifier, bytes32 secret, address recipient, bytes32[] memory leaves) internal returns(bytes memory proof, bytes32[] memory publicInputs) {
