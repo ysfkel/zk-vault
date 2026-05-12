@@ -60,18 +60,4 @@ Troubleshooting
 Developer notes
 - The circuit uses a Merkle depth of 20. Confirm the on-chain `Verifier.sol` is generated from the same circuit and parameters (LOG_N / N) as the prover.
 - The `contracts/js-scripts` helpers normalize hash formats; mismatches between Uint8Array and 0x-hex strings are a common cause of "leaf not found" errors.
-
-Submodules vs Forge-managed libs
-- Recommended: use Forge-managed libs with `forge install` (see Quickstart).
-- If you maintain git submodules instead, ensure `.gitmodules` is at the repo root and paths point to `contracts/lib/*`, then run `git submodule update --init --recursive`.
-
-If you need help converting to the Forge flow or moving `.gitmodules`, I can update the repository accordingly.
-
-Contact / Contributing
-- Open an issue or PR with reproduction steps and any failing test output. Include the generated proof bytes when relevant.
-
-License
-- Project inherits licenses of included libraries; check `contracts/lib` packages for details.
-
-----
-If you'd like, I can also add a small script or CI check that validates circuit/verifier parity automatically.
+ 
