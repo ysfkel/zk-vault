@@ -1,0 +1,6 @@
+contracts/js-scripts/node_modules/
+circuit/target
+contracts/cache/
+contracts/out/
+docs/
+.env

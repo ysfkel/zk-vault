@@ -1,0 +1,21 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.34" 
+ffi = true
+
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@poseidon2/contracts=lib/poseidon2-evm/src/",
+    "forge-std=lib/forge-std/src"
+]
+
+[lint]
+ignore = [ "src/Verifier.sol"]
+ 
+exclude_lints = ["mixed-case-variable", "screaming-snake-case-immutable", "unaliased-plain-import", "unsafe-typecast", "mixed-case-function"]
+
+
+
+
