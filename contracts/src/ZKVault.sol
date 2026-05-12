@@ -4,7 +4,8 @@ import "./IncrementalMerkleTree.sol";
 import { IVerifier } from "./Verifier.sol";
 
 /// @title ZK Vault
-/// @notice For educational purposes only. Implements private withdrawals using zero-knowledge proofs and nullifiers.
+/// @notice Do not deploy on mainnet or use with real funds. This contract is not auditted and intended for demonstration of zero-knowledge proof verification in a simple mixer-like application.
+/// @dev Implements private withdrawals using zero-knowledge proofs and nullifiers.
 /// @dev Inherits from `IncrementalMerkleTree`. Deposits add commitments to the Merkle tree; withdrawals verify
 ///      a ZK proof that a commitment exists and mark the corresponding nullifier hash as spent to prevent double-spend.
 contract ZKVault is IncrementalMerkleTree {
