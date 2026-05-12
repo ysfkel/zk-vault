@@ -1,28 +1,27 @@
-## zk-mixer
+## ZK Vault
 
-A small Tornado-like mixer using a Noir circuit (Poseidon-based Merkle tree) and an on-chain verifier.
+ZK Vault provides private withdrawals using zero-knowledge proofs. Deposits create commitments included in an on-chain Merkle tree; withdrawals present ZK proofs that a commitment exists and a nullifier is unused to prevent double-spends.
 
-Key ideas
-- Privacy-preserving deposits and withdrawals using nullifiers to prevent double-spend.
-- Merkle tree depth: 20 (proofs use 20 siblings).
-- Root history kept in a ring buffer (default 30 roots) — newer roots overwrite older ones.
+Highlights
+- Private withdrawals using zero-knowledge proofs and nullifiers.
+- Merkle tree depth: 20 (proofs include 20 sibling nodes).
+- Root history: a ring buffer (default 30 roots) — older roots are overwritten as new ones are added.
 
-Repository layout (important files)
+Repository layout
 - `circuit/` – Noir circuit sources and compiled artifacts (`circuit/target/circuit.json`).
-- `contracts/` – Solidity contracts and tests (mixer, verifier, incremental Merkle tree).
+- `contracts/` – Solidity contracts and tests (vault, verifier, incremental Merkle tree).
 - `contracts/js-scripts/` – helper scripts used by tests (`generate_proof.ts`, `merkle_tree.js`).
 
 Requirements
 - Foundry (`forge`) for compiling & running tests.
-- Node.js + npm (for proof helper scripts). `npx tsx` is used in tests via `vm.ffi`.
+- Node.js + npm for proof helper scripts (tests call these via `vm.ffi` using `npx tsx`).
 - Noir / Barretenberg toolchain to build the circuit and generate the Solidity verifier.
 
-Quickstart (recommended)
-1. Install Foundry: follow Foundry docs, then run `foundryup`.
-2. From the repo root, prefer Forge-managed libs:
+Quickstart
+1. Install Foundry and Node.js.
+2. Install contract dependencies (recommended Forge flow):
 
 ```bash
-# in repo root
 cd contracts
 forge install
 cd js-scripts
@@ -45,42 +44,34 @@ forge build
 forge test -vv
 ```
 
-Running the proof helper script directly
+Running proof helper scripts manually
 
-If you need to debug proof generation without `vm.ffi`, run the helper manually:
+To debug proof generation directly (outside `vm.ffi`):
 
 ```bash
 npx tsx contracts/js-scripts/src/generate_proof.ts <nullifier> <secret> <recipient> <leaf1> <leaf2> ...
 ```
 
 Troubleshooting
-- "leaf not found": ensure leaves are 0x-prefixed hex strings — `merkle_tree.js` stores leaves as hex strings and `generate_proof.ts` expects normalized 0x-hex strings.
-- `ProofLengthWrongWithLogN(...)` revert: indicates a prover/verifier mismatch. Regenerate the Solidity verifier from the same circuit artifact used by the prover (see step 3) and recompile contracts. Print the generated proof length in `generate_proof.ts` to compare against `Verifier.sol` expectations.
-- To show debug prints from the FFI-run script, run it directly as above or write logs to stderr (so they aren't suppressed by the VM).
+- "leaf not found": ensure leaves are provided as 0x-prefixed hex strings — `merkle_tree.js` stores leaves as hex strings and `generate_proof.ts` expects normalized 0x-hex inputs.
+- `ProofLengthWrongWithLogN(...)` revert: indicates a prover/verifier mismatch. Regenerate the Solidity verifier from the same circuit artifacts used by the prover (see step 3) and recompile contracts. Add a debug print in `generate_proof.ts` to confirm the generated proof byte length.
+- Debug prints from FFI-run scripts may be suppressed by the VM; run the script directly as shown above or write logs to stderr to ensure visibility.
 
 Developer notes
-- The Merkle tree in the circuit uses depth 20. The on-chain `Verifier.sol` currently expects `LOG_N = 11` in some configs — make sure the verifier you compile matches the circuit's parameters.
-- See `contracts/js-scripts/src/generate_proof.ts` and `contracts/js-scripts/src/merkle_tree.js` for proof generation details and format normalization.
+- The circuit uses a Merkle depth of 20. Confirm the on-chain `Verifier.sol` is generated from the same circuit and parameters (LOG_N / N) as the prover.
+- The `contracts/js-scripts` helpers normalize hash formats; mismatches between Uint8Array and 0x-hex strings are a common cause of "leaf not found" errors.
 
-Submodules vs Forge libs
-- This repo historically included `contracts/lib/` with submodules. Two options:
-      - Use Forge-managed libs: run `cd contracts && forge install` (recommended).
-      - If you prefer git submodules, ensure `.gitmodules` is at the repo root and paths point to `contracts/lib/*`, then run `git submodule update --init --recursive`.
+Submodules vs Forge-managed libs
+- Recommended: use Forge-managed libs with `forge install` (see Quickstart).
+- If you maintain git submodules instead, ensure `.gitmodules` is at the repo root and paths point to `contracts/lib/*`, then run `git submodule update --init --recursive`.
 
-If you run into git path errors related to `.gitmodules`, move the file and commit it at the repo root:
-
-```bash
-git mv contracts/.gitmodules .gitmodules
-git add .gitmodules
-git commit -m "Move .gitmodules to repo root"
-git submodule update --init --recursive
-```
+If you need help converting to the Forge flow or moving `.gitmodules`, I can update the repository accordingly.
 
 Contact / Contributing
-- Open an issue or PR with clear reproduction steps. Include failing test output and a copy of the generated proof bytes if possible.
+- Open an issue or PR with reproduction steps and any failing test output. Include the generated proof bytes when relevant.
 
 License
 - Project inherits licenses of included libraries; check `contracts/lib` packages for details.
 
 ----
-This `README.md` aims to make onboarding faster: if you want, I can add a short troubleshooting script or CI job to validate circuit/verifier parity.
+If you'd like, I can also add a small script or CI check that validates circuit/verifier parity automatically.
